@@ -80,6 +80,26 @@ namespace CRSFAnalyser
           DISPLAYPORT_CMD = 0x7D,				// MSP DisplayPort control command
           ARDUPILOT_RESP = 0x80,				// Ardupilot output?
      };
+     
+     enum RCChannel
+     {
+          CHANNEL_1 = 0,
+          CHANNEL_2 = 1,
+          CHANNEL_3 = 2,
+          CHANNEL_4 = 3,
+          CHANNEL_5 = 4,
+          CHANNEL_6 = 5,
+          CHANNEL_7 = 6,
+          CHANNEL_8 = 7,
+          CHANNEL_9 = 8,
+          CHANNEL_10 = 9,
+          CHANNEL_11 = 10,
+          CHANNEL_12 = 11,
+          CHANNEL_13 = 12,
+          CHANNEL_14 = 13,
+          CHANNEL_15 = 14,
+          CHANNEL_16 = 15,
+     };
 
      #pragma pack(push, 1)
      struct CRSFPayloadRCChannelsData
@@ -159,12 +179,15 @@ namespace CRSFAnalyser
      private:
           static uint8_t crc8_table[];
           std::map<uint8_t, int> parserStatistics;
+          bool enableLogging = false;
+          uint16_t channelsValue[16];
           
           uint8_t CalculateCRC8(uint8_t* data, uint32_t len);
           
           // Convert between RC [172, 1811] and PWM value [1000, 2000]
           uint16_t ConvertChannelValue(unsigned channelValue, bool forward = true);
           
+          bool CanLog();
           void ParseFCGPSData(CRSFPayloadGPSData* data);
           void ParseFCBatteryData(CRSFPayloadBatteryData* data);
           void ParseFCRCChannelsData(CRSFPayloadRCChannelsData* channelsData);
@@ -175,10 +198,12 @@ namespace CRSFAnalyser
           const char* PacketTypeToStr(uint8_t packetType);
           
      public:
-          void ParseFCPacket(std::vector<uint8_t>& packet);
+          void EnableLogging(bool enable);
+          void ParseFCPacket(std::vector<uint8_t>* packet);
           void ParseFCPacket(std::vector<uint8_t> packet);
           void ParseFCPacket(uint8_t* packet, size_t packetLen);
           void LogParserStatistics();
+          uint16_t GetChannelValue(RCChannel channelId);
           
           void CreateCRSF_RCChannelsPacket(CRSFAddresType addr, CRSFPayloadRCChannelsData& channelsData, std::vector<uint8_t>& result);
      };

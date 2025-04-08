@@ -43,7 +43,7 @@ namespace CRSFAnalyser
 			default: return "Unknown";
 		}	
 	}
-
+	
 	uint8_t CRSFParser::crc8_table[] = {
 	  0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29, 0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D,
 	  0x52, 0x87, 0x2D, 0xF8, 0xAC, 0x79, 0xD3, 0x06, 0x7B, 0xAE, 0x04, 0xD1, 0x85, 0x50, 0xFA, 0x2F,
@@ -91,30 +91,45 @@ namespace CRSFAnalyser
 		//Logger::Log("  ChannelValue = %i result = %i\n", channelValue, result);
 		return result;
 	}
+	
+	void CRSFParser::EnableLogging(bool enable)
+	{
+		enableLogging = enable;
+	}
+	
+	bool CRSFParser::CanLog()
+	{
+		return enableLogging;
+	}	
 
 	// !!! Untested !!!
 	void CRSFParser::ParseFCGPSData(CRSFPayloadGPSData* data)
 	{
-		Logger::Log("  latitude = %i\n", data->latitude);
-		Logger::Log("  longitude = %i\n", data->longitude);
-		Logger::Log("  groundspeed = %i\n", data->groundspeed);
-		Logger::Log("  gps_heading = %i\n", data->gps_heading);
-		Logger::Log("  altitude = %i\n", data->altitude);
-		Logger::Log("  num_satellites = %i\n", data->num_satellites);
+		if(CanLog())
+		{
+			Logger::Log("  latitude = %i\n", data->latitude);
+			Logger::Log("  longitude = %i\n", data->longitude);
+			Logger::Log("  groundspeed = %i\n", data->groundspeed);
+			Logger::Log("  gps_heading = %i\n", data->gps_heading);
+			Logger::Log("  altitude = %i\n", data->altitude);
+			Logger::Log("  num_satellites = %i\n", data->num_satellites);
+		}
 	}
 
 	// !!! Untested !!!
 	void CRSFParser::ParseFCBatteryData(CRSFPayloadBatteryData* data)
 	{
-		Logger::Log("  voltage = %i\n", data->voltage);
-		Logger::Log("  current = %i\n", data->current);
-		Logger::Log("  fuel = %i\n", data->fuel);
-		Logger::Log("  remaining = %i\n", data->remaining);
+		if(CanLog())
+		{
+			Logger::Log("  voltage = %i\n", data->voltage);
+			Logger::Log("  current = %i\n", data->current);
+			Logger::Log("  fuel = %i\n", data->fuel);
+			Logger::Log("  remaining = %i\n", data->remaining);
+		}
 	}
 
 	void CRSFParser::ParseFCRCChannelsData(CRSFPayloadRCChannelsData* channelsData)
 	{
-		uint16_t channelsValue[16];
 		channelsValue[0] = ConvertChannelValue(channelsData->chan0);
 		channelsValue[1] = ConvertChannelValue(channelsData->chan1);
 		channelsValue[2] = ConvertChannelValue(channelsData->chan2);
@@ -131,97 +146,119 @@ namespace CRSFAnalyser
 		channelsValue[13] = ConvertChannelValue(channelsData->chan13);
 		channelsValue[14] = ConvertChannelValue(channelsData->chan14);
 		channelsValue[15] = ConvertChannelValue(channelsData->chan15);
-		for(int i = 0; i < 16; ++i)
+		
+		if(CanLog())
 		{
-			Logger::Log("  Channel_%i val = %i\n", i+1, channelsValue[i]);
+			for(int i = 0; i < 16; ++i)
+			{
+				Logger::Log("  Channel_%i val = %i\n", i+1, channelsValue[i]);
+			}
 		}
+	}
+	
+	uint16_t CRSFParser::GetChannelValue(RCChannel channelId)
+	{
+		return channelsValue[(int)channelId];
 	}
 
 	// !!! Untested !!!
 	void CRSFParser::ParseFCAttitudeData(CRSFPayloadAttitudeData* data)
 	{
-		Logger::Log("  pitch = %i\n", data->pitch);
-		Logger::Log("  roll = %i\n", data->roll);
-		Logger::Log("  yaw = %i\n", data->yaw);
+		if(CanLog())
+		{
+			Logger::Log("  pitch = %i\n", data->pitch);
+			Logger::Log("  roll = %i\n", data->roll);
+			Logger::Log("  yaw = %i\n", data->yaw);
+		}
 	}
 
 	void CRSFParser::ParseFCLinkStatData(CRSFPayloadLinkStatData* data)
 	{
-		Logger::Log("  Uplink RSSI Antenna 1 (dBm * -1) %i\n", data->up_rssi_ant1);
-		Logger::Log("  Uplink RSSI Antenna 2 (dBm * -1) %i\n", data->up_rssi_ant2);
-		Logger::Log("  Uplink Package success rate / Link quality (%%) %i\n", data->up_link_quality);
-		Logger::Log("  Uplink SNR (dB) %i\n", data->up_snr);
-		Logger::Log("  number of currently best antenna %i\n", data->active_antenna);
-		if(data->rf_profile == 0)
-			Logger::Log("  rf_profile = 4fps\n");	
-		else if(data->rf_profile == 1)
-			Logger::Log("  rf_profile = 50fps\n");	
-		else if(data->rf_profile == 2)
-			Logger::Log("  rf_profile = 150fps\n");	
-		else
-			Logger::Log("  rf_profile - unknown for %i\n", data->rf_profile);
-			
-		if(data->up_rf_power == 0)
-			Logger::Log("  up_rf_power = 0mW\n");	
-		else if(data->up_rf_power == 1)
-			Logger::Log("  up_rf_power = 10mW\n");
-		else if(data->up_rf_power == 2)
-			Logger::Log("  up_rf_power = 25mW\n");
-		else if(data->up_rf_power == 3)
-			Logger::Log("  up_rf_power = 100mW\n");
-		else if(data->up_rf_power == 4)
-			Logger::Log("  up_rf_power = 500mW\n");
-		else if(data->up_rf_power == 5)
-			Logger::Log("  up_rf_power = 1000mW\n");
-		else if(data->up_rf_power == 6)
-			Logger::Log("  up_rf_power = 2000mW\n");
-		else if(data->up_rf_power == 7)
-			Logger::Log("  up_rf_power = 250mW\n");
-		else if(data->up_rf_power == 8)
-			Logger::Log("  up_rf_power = 50mW\n");
-		else
-			Logger::Log("  up_rf_power - unknown for %i\n", data->up_rf_power);
-			
-		Logger::Log("  Downlink RSSI (dBm * -1) %i\n", data->down_rssi);
-		Logger::Log("  Downlink Package success rate / Link quality (%%) %i\n", data->down_link_quality);
-		Logger::Log("  Downlink SNR (dB) %i\n", data->down_snr);	
+		if(CanLog())
+		{
+			Logger::Log("  Uplink RSSI Antenna 1 (dBm * -1) %i\n", data->up_rssi_ant1);
+			Logger::Log("  Uplink RSSI Antenna 2 (dBm * -1) %i\n", data->up_rssi_ant2);
+			Logger::Log("  Uplink Package success rate / Link quality (%%) %i\n", data->up_link_quality);
+			Logger::Log("  Uplink SNR (dB) %i\n", data->up_snr);
+			Logger::Log("  number of currently best antenna %i\n", data->active_antenna);
+			if(data->rf_profile == 0)
+				Logger::Log("  rf_profile = 4fps\n");	
+			else if(data->rf_profile == 1)
+				Logger::Log("  rf_profile = 50fps\n");	
+			else if(data->rf_profile == 2)
+				Logger::Log("  rf_profile = 150fps\n");	
+			else
+				Logger::Log("  rf_profile - unknown for %i\n", data->rf_profile);
+				
+			if(data->up_rf_power == 0)
+				Logger::Log("  up_rf_power = 0mW\n");	
+			else if(data->up_rf_power == 1)
+				Logger::Log("  up_rf_power = 10mW\n");
+			else if(data->up_rf_power == 2)
+				Logger::Log("  up_rf_power = 25mW\n");
+			else if(data->up_rf_power == 3)
+				Logger::Log("  up_rf_power = 100mW\n");
+			else if(data->up_rf_power == 4)
+				Logger::Log("  up_rf_power = 500mW\n");
+			else if(data->up_rf_power == 5)
+				Logger::Log("  up_rf_power = 1000mW\n");
+			else if(data->up_rf_power == 6)
+				Logger::Log("  up_rf_power = 2000mW\n");
+			else if(data->up_rf_power == 7)
+				Logger::Log("  up_rf_power = 250mW\n");
+			else if(data->up_rf_power == 8)
+				Logger::Log("  up_rf_power = 50mW\n");
+			else
+				Logger::Log("  up_rf_power - unknown for %i\n", data->up_rf_power);
+				
+			Logger::Log("  Downlink RSSI (dBm * -1) %i\n", data->down_rssi);
+			Logger::Log("  Downlink Package success rate / Link quality (%%) %i\n", data->down_link_quality);
+			Logger::Log("  Downlink SNR (dB) %i\n", data->down_snr);	
+		}
 	}
 
 	void CRSFParser::ParseFCELRSStatusData(CRSFPayloadELRSStatusData* data)
 	{
-		Logger::Log("  packetsBad = %i\n", data->packetsBad);
-		Logger::Log("  packetsGood = %i\n", data->packetsGood);
-		Logger::Log("  flags: ");
-		if(data->flags == 0x00)
-			Logger::Log("No");
-		else
+		if(CanLog())
 		{
-			if((data->flags & 0x01) == 0x01)
-				Logger::Log("Connected, ");
-			if((data->flags & 0x04) == 0x04)
-				Logger::Log("Model Mismatch, ");
-			if((data->flags & 0x08) == 0x08)
-				Logger::Log("Armed, ");
-			if((data->flags & 0x20) == 0x20)
-				Logger::Log("Not while connected (not used), ");
-			if((data->flags & 0x40) == 0x40)
-				Logger::Log("Baud rate too low (not used) ");
+			Logger::Log("  packetsBad = %i\n", data->packetsBad);
+			Logger::Log("  packetsGood = %i\n", data->packetsGood);
+			Logger::Log("  flags: ");
+			if(data->flags == 0x00)
+				Logger::Log("No");
+			else
+			{
+				if((data->flags & 0x01) == 0x01)
+					Logger::Log("Connected, ");
+				if((data->flags & 0x04) == 0x04)
+					Logger::Log("Model Mismatch, ");
+				if((data->flags & 0x08) == 0x08)
+					Logger::Log("Armed, ");
+				if((data->flags & 0x20) == 0x20)
+					Logger::Log("Not while connected (not used), ");
+				if((data->flags & 0x40) == 0x40)
+					Logger::Log("Baud rate too low (not used) ");
+			}
+			Logger::Log("\n");
 		}
-		Logger::Log("\n");
 	}
 
 	void CRSFParser::ParseFCPacket(uint8_t* packet, size_t packetLen)
 	{
-		Logger::Log("[");
-		for(size_t i = 0; i < packetLen; i++)
+		if(CanLog())
 		{
-			Logger::Log(" 0x%02X,", packet[i]);
+			Logger::Log("[");
+			for(size_t i = 0; i < packetLen; i++)
+			{
+				Logger::Log(" 0x%02X,", packet[i]);
+			}
+			Logger::Log(" ]\n");
 		}
-		Logger::Log(" ]\n");
 		
 		if(packetLen < CRSF_PROTOCOL_PACKET_MIN_LEN)
 		{
-			Logger::Log("Wrong packet length %i", packetLen );
+			if(CanLog())
+				Logger::Log("Wrong packet length %i", packetLen );
 			return;
 		}
 			
@@ -230,14 +267,16 @@ namespace CRSFAnalyser
 		{
 			if(packet[frameIndex] != (uint8_t)CRSFAddresType::FLIGHT_CONTROLLER)
 			{
-				Logger::Log("Wrong packet CRSF addr %i", packet[frameIndex] );
+				if(CanLog())
+					Logger::Log("Wrong packet CRSF addr %i", packet[frameIndex] );
 				return;
 			}
 		
 			uint8_t frameLen = packet[++frameIndex];
 			if(frameLen > packetLen - 2 || frameLen > CRSF_PROTOCOL_PACKET_MAX_LEN)
 			{
-				Logger::Log("Wrong frame length!!! frameLen=%i packetLen=%i\n", frameLen, packetLen);
+				if(CanLog())
+					Logger::Log("Wrong frame length!!! frameLen=%i packetLen=%i\n", frameLen, packetLen);
 				return;
 			}
 		
@@ -247,7 +286,8 @@ namespace CRSFAnalyser
 			uint8_t crc = CalculateCRC8(packet + frameIndex, frameLen - 1);
 			if (crcByte != crc) 
 			{
-				Logger::Log("Wrong CRC! Expected: 0x%02X, Actual: 0x%02X\n", crcByte, crc);
+				if(CanLog())
+					Logger::Log("Wrong CRC! Expected: 0x%02X, Actual: 0x%02X\n", crcByte, crc);
 				return;
 			}
 			
@@ -257,10 +297,12 @@ namespace CRSFAnalyser
 			{
 				case (int)CRSFPacketType::GPS:
 					{
-						Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::GPS)
 						{
-							Logger::Log("Wrong payload size for GPS frame: %i\n", frameLen);
+							if(CanLog())
+								Logger::Log("Wrong payload size for GPS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCGPSData((CRSFPayloadGPSData*)(&packet[frameIndex + 1]));
@@ -268,10 +310,12 @@ namespace CRSFAnalyser
 					break;
 				case (int)CRSFPacketType::BATTERY_SENSOR:
 					{
-						Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::BATTERY_SENSOR)
 						{
-							Logger::Log("Wrong payload size for Battery sensor frame: %i\n", frameLen);
+							if(CanLog())
+								Logger::Log("Wrong payload size for Battery sensor frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCBatteryData((CRSFPayloadBatteryData*)(&packet[frameIndex + 1]));
@@ -279,10 +323,12 @@ namespace CRSFAnalyser
 					break;
 				case (int)CRSFPacketType::RC_CHANNELS_PACKED:
 					{
-						Logger::Log("%s Channels data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Channels data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::RC_CHANNELS)
 						{
-							Logger::Log("Wrong payload size for RC_CHANNELS frame: %i\n", frameLen);
+							if(CanLog())
+								Logger::Log("Wrong payload size for RC_CHANNELS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCRCChannelsData((CRSFPayloadRCChannelsData*)(&packet[frameIndex + 1]));
@@ -290,10 +336,12 @@ namespace CRSFAnalyser
 					break;
 				case (int)CRSFPacketType::ATTITUDE:
 					{
-						Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::ATTITUDE)
 						{
-							Logger::Log("Wrong payload size for ATTITUDE frame: %i\n", frameLen);
+							if(CanLog())
+								Logger::Log("Wrong payload size for ATTITUDE frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCAttitudeData((CRSFPayloadAttitudeData*)(&packet[frameIndex + 1]));
@@ -301,10 +349,12 @@ namespace CRSFAnalyser
 					break;
 				case (int)CRSFPacketType::LINK_STATISTICS:
 					{
-						Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::LINK_STATISTICS)
 						{
-							Logger::Log("Wrong payload size for LINK_STATISTICS frame: %i\n", frameLen);
+							if(CanLog())
+								Logger::Log("Wrong payload size for LINK_STATISTICS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCLinkStatData((CRSFPayloadLinkStatData*)(&packet[frameIndex + 1]));
@@ -312,12 +362,14 @@ namespace CRSFAnalyser
 					break;
 				case (int)CRSFPacketType::ELRS_STATUS:
 					{
-						Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
+						if(CanLog())
+							Logger::Log("%s Data:\n", PacketTypeToStr(frameType));
 						ParseFCELRSStatusData((CRSFPayloadELRSStatusData*)(&packet[frameIndex + 1]));
 					}
 					break;
 				default:
-					Logger::Log("%s\n", PacketTypeToStr(frameType));
+					if(CanLog())
+						Logger::Log("%s\n", PacketTypeToStr(frameType));
 					break;
 			}
 			frameIndex += frameLen;
@@ -325,9 +377,9 @@ namespace CRSFAnalyser
 		}	
 	}
 
-	void CRSFParser::ParseFCPacket(std::vector<uint8_t>& packet)
+	void CRSFParser::ParseFCPacket(std::vector<uint8_t>* packet)
 	{
-		ParseFCPacket(packet.data(), packet.size());
+		ParseFCPacket(packet->data(), packet->size());
 	}
 
 	void CRSFParser::ParseFCPacket(std::vector<uint8_t> packet)
