@@ -1,7 +1,7 @@
 add_library(CRSFParser STATIC)
 add_library(CRSFAnalyser::CRSFParser ALIAS CRSFParser)
 
-target_compile_features(CRSFParser PRIVATE cxx_std_14)
+target_compile_features(CRSFParser PRIVATE cxx_std_17)
 target_sources(CRSFParser PRIVATE CRSFParser.cpp)
 target_include_directories(CRSFParser PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>")
 
