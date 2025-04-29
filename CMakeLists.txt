@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 option (WITH_LOGS "Use logging." ON)
-if (WITH_LOGS)
-	add_compile_definitions(LOG_ON)
+if (NOT WITH_LOGS)
+	add_compile_definitions(LOG_OFF)
 endif ()
 
 add_subdirectory(src)
