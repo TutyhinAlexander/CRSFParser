@@ -8,7 +8,7 @@ mkdir build
 cd build
 $echo pwd
 echo "prepare make configs..."
-# $1 can be -DWITH_LOGS=OFF
+# $1 can be -DRELEASE=ON
 cmake $1 ..
 echo "build CRSFParser project..."
 make
