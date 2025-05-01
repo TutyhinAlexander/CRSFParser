@@ -179,15 +179,12 @@ namespace CRSFAnalyser
      private:
           static uint8_t crc8_table[];
           std::map<uint8_t, int> parserStatistics;
-          bool enableLogging = false;
           uint16_t channelsValue[16];
           
           uint8_t CalculateCRC8(uint8_t* data, uint32_t len);
-          
           // Convert between RC [172, 1811] and PWM value [1000, 2000]
           uint16_t ConvertChannelValue(unsigned channelValue, bool forward = true);
           
-          bool CanLog();
           void ParseFCGPSData(CRSFPayloadGPSData* data);
           void ParseFCBatteryData(CRSFPayloadBatteryData* data);
           void ParseFCRCChannelsData(CRSFPayloadRCChannelsData* channelsData);
@@ -198,7 +195,6 @@ namespace CRSFAnalyser
           const char* PacketTypeToStr(uint8_t packetType);
           
      public:
-          void EnableLogging(bool enable);
           void ParseFCPacket(std::vector<uint8_t>* packet);
           void ParseFCPacket(std::vector<uint8_t> packet);
           void ParseFCPacket(uint8_t* packet, size_t packetLen);

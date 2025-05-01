@@ -16,7 +16,6 @@ int main()
 	Logger::Log("Start logging...\n");
 	
 	CRSFParser parser;
-	parser.EnableLogging(true);
 
 	Logger::Log("Test parser:\n");
 //																					C8 18 16 D7 5B 9E 2B 08 F8 8B 5F FC E2 17 BF F8 05 C0 7F 21 45 29 02 1C E0 EA
