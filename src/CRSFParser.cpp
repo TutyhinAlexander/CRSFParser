@@ -219,7 +219,7 @@ namespace CRSFAnalyser
 
 	void CRSFParser::ParseFCPacket(uint8_t* packet, size_t packetLen)
 	{
-		LOG("FCPacket: [");
+		LOG("============\nFCPacket: [");
 		for(size_t i = 0; i < packetLen; i++)
 		{
 			LOG(" 0x%02X,", packet[i]);
@@ -228,7 +228,7 @@ namespace CRSFAnalyser
 		
 		if(packetLen < CRSF_PROTOCOL_PACKET_MIN_LEN)
 		{
-			LOG("Wrong packet length %i", packetLen );
+			LOG("[ERROR] Wrong packet length %i\n", packetLen );
 			return;
 		}
 			
@@ -237,14 +237,14 @@ namespace CRSFAnalyser
 		{
 			if(packet[frameIndex] != (uint8_t)CRSFAddresType::FLIGHT_CONTROLLER)
 			{
-				LOG("Wrong packet CRSF addr %i", packet[frameIndex] );
+				LOG("[ERROR] Wrong packet CRSF addr %i\n", packet[frameIndex] );
 				return;
 			}
 		
 			uint8_t frameLen = packet[++frameIndex];
 			if(frameLen > packetLen - 2 || frameLen > CRSF_PROTOCOL_PACKET_MAX_LEN)
 			{
-				LOG("Wrong frame length!!! frameLen=%i packetLen=%i\n", frameLen, packetLen);
+				LOG("[ERROR] Wrong frame length!!! frameLen=%i packetLen=%i\n", frameLen, packetLen);
 				return;
 			}
 		
@@ -254,7 +254,7 @@ namespace CRSFAnalyser
 			uint8_t crc = CalculateCRC8(packet + frameIndex, frameLen - 1);
 			if (crcByte != crc) 
 			{
-				LOG("Wrong CRC! Expected: 0x%02X, Actual: 0x%02X\n", crcByte, crc);
+				LOG("[ERROR] Wrong CRC! Expected: 0x%02X, Actual: 0x%02X\n", crcByte, crc);
 				return;
 			}
 			
@@ -267,7 +267,7 @@ namespace CRSFAnalyser
 						LOG("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::GPS)
 						{
-							LOG("Wrong payload size for GPS frame: %i\n", frameLen);
+							LOG("[ERROR] Wrong payload size for GPS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCGPSData((CRSFPayloadGPSData*)(&packet[frameIndex + 1]));
@@ -278,7 +278,7 @@ namespace CRSFAnalyser
 						LOG("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::BATTERY_SENSOR)
 						{
-							LOG("Wrong payload size for Battery sensor frame: %i\n", frameLen);
+							LOG("[ERROR] Wrong payload size for Battery sensor frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCBatteryData((CRSFPayloadBatteryData*)(&packet[frameIndex + 1]));
@@ -289,7 +289,7 @@ namespace CRSFAnalyser
 						LOG("%s Channels data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::RC_CHANNELS)
 						{
-							LOG("Wrong payload size for RC_CHANNELS frame: %i\n", frameLen);
+							LOG("[ERROR] Wrong payload size for RC_CHANNELS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCRCChannelsData((CRSFPayloadRCChannelsData*)(&packet[frameIndex + 1]));
@@ -300,7 +300,7 @@ namespace CRSFAnalyser
 						LOG("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::ATTITUDE)
 						{
-							LOG("Wrong payload size for ATTITUDE frame: %i\n", frameLen);
+							LOG("[ERROR] Wrong payload size for ATTITUDE frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCAttitudeData((CRSFPayloadAttitudeData*)(&packet[frameIndex + 1]));
@@ -311,7 +311,7 @@ namespace CRSFAnalyser
 						LOG("%s Data:\n", PacketTypeToStr(frameType));
 						if(frameLen - 2 != (int)CRSFPayloadSize::LINK_STATISTICS)
 						{
-							LOG("Wrong payload size for LINK_STATISTICS frame: %i\n", frameLen);
+							LOG("[ERROR] Wrong payload size for LINK_STATISTICS frame: %i\n", frameLen);
 							return;
 						}
 						ParseFCLinkStatData((CRSFPayloadLinkStatData*)(&packet[frameIndex + 1]));
@@ -332,14 +332,72 @@ namespace CRSFAnalyser
 		}	
 	}
 
-	void CRSFParser::ParseFCPacket(std::vector<uint8_t>* packet)
+	void CRSFParser::ParseFCPacket(std::vector<uint8_t>* byteStream)
 	{
-		ParseFCPacket(packet->data(), packet->size());
+		size_t streamLen = byteStream->size();
+		if(streamLen == 0)
+			return;
+		
+		int streamIndex = 0;
+		size_t packetLen = 0;
+		size_t uncompletedPacketLen = uncompletedPacket.size();	
+		//LOG("CRSFParser::ParseFCPacket uncompletedPacketLen=%d\n", uncompletedPacketLen );			
+		while(streamIndex < streamLen)
+		{
+			if(uncompletedPacketLen > 0)
+			{
+				if(uncompletedPacketLen == 1) // addr
+				{
+					packetLen = (*byteStream)[streamIndex++];
+					//LOG("CRSFParser::ParseFCPacket packetLen=%d\n", packetLen );						
+					uncompletedPacket.push_back(packetLen);
+				}
+				else
+				{
+					packetLen = uncompletedPacket[1] - (uncompletedPacketLen - 2); // bytes left to read
+					//LOG("CRSFParser::ParseFCPacket packetLen=%d uncompletedPacket[1]=%d uncompletedPacketLen=%d\n", packetLen, uncompletedPacket[1], uncompletedPacketLen);
+				}
+					
+				if(packetLen > CRSF_PROTOCOL_PACKET_MAX_LEN)
+				{
+					LOG("[ERROR] Wrong packet length %d\n", packetLen );
+					packetLen = 0;
+					uncompletedPacket.clear();
+					return;
+				}
+				else
+				{
+					while(packetLen > 0 && streamIndex < streamLen)
+					{
+						uncompletedPacket.push_back((*byteStream)[streamIndex++]);
+						--packetLen;
+					}
+					if(packetLen == 0)
+					{
+						parsedPackets.push(uncompletedPacket);
+						uncompletedPacket = std::vector<uint8_t>();
+						uncompletedPacketLen = 0;
+					}
+				}
+			}
+			else
+			{
+				uncompletedPacket.push_back((*byteStream)[streamIndex++]);
+				++uncompletedPacketLen;
+			}
+		}
+		
+		while(parsedPackets.size() > 0)
+		{
+			auto packet = parsedPackets.front();
+			parsedPackets.pop();
+			ParseFCPacket(packet.data(), packet.size());
+		}
 	}
 
-	void CRSFParser::ParseFCPacket(std::vector<uint8_t> packet)
+	void CRSFParser::ParseFCPacket(std::vector<uint8_t> byteStream)
 	{
-		ParseFCPacket(packet.data(), packet.size());
+		ParseFCPacket(&byteStream);
 	}
 
 	void CRSFParser::LogParserStatistics()

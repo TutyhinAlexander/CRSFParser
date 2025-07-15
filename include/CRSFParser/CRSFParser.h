@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
+#include <queue>
 
 // Full description of CRSF protocol: https://github.com/tbs-fpv/tbs-crsf-spec/blob/main/crsf.md#crsf-protocol
 
@@ -177,6 +178,8 @@ namespace CRSFAnalyser
      class CRSFParser
      {
      private:
+          std::queue<std::vector<uint8_t> > parsedPackets;
+          std::vector<uint8_t> uncompletedPacket;
           static uint8_t crc8_table[];
           std::map<uint8_t, int> parserStatistics;
           uint16_t channelsValue[16];
