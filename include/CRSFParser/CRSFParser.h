@@ -178,10 +178,10 @@ namespace CRSFAnalyser
      class CRSFParser
      {
      private:
-          std::queue<std::vector<uint8_t> > parsedPackets;
           std::vector<uint8_t> uncompletedPacket;
           static uint8_t crc8_table[];
           std::map<uint8_t, int> parserStatistics;
+          std::map<uint8_t, uint8_t> replaceAddrs; // replace CRSF addr from <key> to <val>
           uint16_t channelsValue[16];
           
           uint8_t CalculateCRC8(uint8_t* data, uint32_t len);
@@ -202,6 +202,7 @@ namespace CRSFAnalyser
           void ParseFCPacket(std::vector<uint8_t> packet);
           void ParseFCPacket(uint8_t* packet, size_t packetLen);
           void LogParserStatistics();
+          void ReplaceAddr(uint8_t from, uint8_t to);
           uint16_t GetChannelValue(RCChannel channelId);
           
           void CreateCRSF_RCChannelsPacket(CRSFAddresType addr, CRSFPayloadRCChannelsData& channelsData, std::vector<uint8_t>& result);

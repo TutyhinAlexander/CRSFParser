@@ -235,9 +235,13 @@ namespace CRSFAnalyser
 		int frameIndex = 0;
 		while(frameIndex < packetLen)
 		{
-			if(packet[frameIndex] != (uint8_t)CRSFAddresType::FLIGHT_CONTROLLER)
+			uint8_t addr = packet[frameIndex];
+			if(replaceAddrs.count(addr) > 0)
+				addr = replaceAddrs[addr];
+
+			if(addr != (uint8_t)CRSFAddresType::FLIGHT_CONTROLLER)
 			{
-				LOG("[ERROR] Wrong packet CRSF addr %i\n", packet[frameIndex] );
+				LOG("[ERROR] Wrong packet CRSF addr %i\n", addr );
 				return;
 			}
 		
@@ -341,7 +345,7 @@ namespace CRSFAnalyser
 		int streamIndex = 0;
 		size_t packetLen = 0;
 		size_t uncompletedPacketLen = uncompletedPacket.size();	
-		//LOG("CRSFParser::ParseFCPacket uncompletedPacketLen=%d\n", uncompletedPacketLen );			
+		LOG("CRSFParser::ParseFCPacket uncompletedPacketLen=%d\n", uncompletedPacketLen );			
 		while(streamIndex < streamLen)
 		{
 			if(uncompletedPacketLen > 0)
@@ -349,18 +353,18 @@ namespace CRSFAnalyser
 				if(uncompletedPacketLen == 1) // addr
 				{
 					packetLen = (*byteStream)[streamIndex++];
-					//LOG("CRSFParser::ParseFCPacket packetLen=%d\n", packetLen );						
+					LOG("CRSFParser::ParseFCPacket packetLen=%d\n", packetLen );						
 					uncompletedPacket.push_back(packetLen);
 				}
 				else
 				{
 					packetLen = uncompletedPacket[1] - (uncompletedPacketLen - 2); // bytes left to read
-					//LOG("CRSFParser::ParseFCPacket packetLen=%d uncompletedPacket[1]=%d uncompletedPacketLen=%d\n", packetLen, uncompletedPacket[1], uncompletedPacketLen);
+					LOG("CRSFParser::ParseFCPacket packetLen=%d uncompletedPacket[1]=%d uncompletedPacketLen=%d\n", packetLen, uncompletedPacket[1], uncompletedPacketLen);
 				}
 					
 				if(packetLen > CRSF_PROTOCOL_PACKET_MAX_LEN)
 				{
-					LOG("[ERROR] Wrong packet length %d\n", packetLen );
+					LOG("[ERROR] wrong packet length %d\n", packetLen );
 					packetLen = 0;
 					uncompletedPacket.clear();
 					return;
@@ -374,8 +378,9 @@ namespace CRSFAnalyser
 					}
 					if(packetLen == 0)
 					{
-						parsedPackets.push(uncompletedPacket);
-						uncompletedPacket = std::vector<uint8_t>();
+						LOG("packet ready; streamIndex=%d streamLen=%d\n", streamIndex, streamLen);
+						ParseFCPacket(uncompletedPacket.data(), uncompletedPacket.size());
+						uncompletedPacket.clear();
 						uncompletedPacketLen = 0;
 					}
 				}
@@ -385,13 +390,6 @@ namespace CRSFAnalyser
 				uncompletedPacket.push_back((*byteStream)[streamIndex++]);
 				++uncompletedPacketLen;
 			}
-		}
-		
-		while(parsedPackets.size() > 0)
-		{
-			auto packet = parsedPackets.front();
-			parsedPackets.pop();
-			ParseFCPacket(packet.data(), packet.size());
 		}
 	}
 
@@ -441,6 +439,11 @@ namespace CRSFAnalyser
 		
 		buff[buffLen - 1] = CRSFParser::CalculateCRC8(buff + 2, buffLen - 3);
 		result.assign(buff, buff + buffLen);
+	}
+	
+	void CRSFParser::ReplaceAddr(uint8_t from, uint8_t to)
+	{
+		replaceAddrs[from] = to;
 	}
 
 } // namespace CRSFAnalyser
